@@ -7,38 +7,33 @@ const breakCount = 16;
 const roundCount = 8;
 const numberOfRuns = 1000;
 
-function generateTeam() {
+function generateTeam () {
   return {
     skill: Math.random() * 7,
     variance: 3 + 2 * Math.random(),
     playedWith: [],
     score: 0,
     wins: 0,
-    index: null,
+    index: null
   };
 }
 
-function generateTeams(count) {
-  var teams = [];
-  for (var i = 0; i < count; i++) {
-    teams.push(generateTeam());
-  }
-  teams.sort(function (a, b) {
-    return b.skill - a.skill;
+function generateTeams (count) {
+  const teams = _.times(count, generateTeam);
+  teams.sort((a, b) => b.skill - a.skill);
+  teams.forEach((team, i) => {
+    team.index = i;
   });
-  for (var i = 0; i < count; i++) {
-    teams[i].index = i;
-  }
   return _.shuffle(teams);
 }
 
-function simulateScore(team) {
+function simulateScore (team) {
   return team.skill + (Math.random() * 2 - 1) * team.variance;
 }
 
-function simulateMatch(team1, team2) {
-  var score1 = simulateScore(team1);
-  var score2 = simulateScore(team2);
+function simulateMatch (team1, team2) {
+  const score1 = simulateScore(team1);
+  const score2 = simulateScore(team2);
   team1.score += score1;
   team2.score += score2;
   team1.playedWith.push(team2.index);
@@ -50,8 +45,8 @@ function simulateMatch(team1, team2) {
   }
 }
 
-function sortTeams(teams) {
-  teams.sort(function (a, b) {
+function sortTeams (teams) {
+  teams.sort((a, b) => {
     if (a.wins === b.wins) {
       return b.score - a.score;
     }
@@ -59,56 +54,36 @@ function sortTeams(teams) {
   });
 }
 
-function conflicting(team1, team2) {
-  for (var i = 0, n = team2.playedWith.length; i < n; i++) {
-    if (team2.playedWith[i] === team1.index) {
-      return true;
-    }
-  }
-  return false;
-}
+const conflicting = (team1, team2) =>
+  _.includes(team2.playedWith, team1.index);
 
 const playHighHigh = meetTwice => teams => {
   sortTeams(teams);
-  var n = teams.length;
-  var picked = [];
-  for (var i = 0; i < n; i++) {
-    picked.push(false);
-  }
 
-  for (var i = 0; i < n/2; i++) {
-    for (var j = 0; j < n; j++) {
+  const n = teams.length;
+  const picked = _.times(n, () => false);
+
+  for (let i = 0; i < n / 2; i++) {
+    for (let j = 0; j < n; j++) {
       if (!picked[j]) {
-        var team1 = teams[j];
+        const team1 = teams[j];
         picked[j] = true;
-        for (var k = j+1; k < n; k++) {
+        for (let k = j + 1; k < n; k++) {
           if (!picked[k] && (meetTwice || !conflicting(team1, teams[k]))) {
             picked[k] = true;
             simulateMatch(team1, teams[k]);
           }
         }
-
       }
     }
   }
-}
+};
 
 const playHighLow = meetTwice => teams => {
   sortTeams(teams);
 
   // Code adapted from Tabs and automatically converted from Cofeescript
-
-  var nbv; //2-3 char variable names. I was a horrible person
-  var j;
-  var bu;
-  var bp;
-  var vbn;
-  var tb;
-  var ta;
-  var fl;
-  var rid;
-  var index;
-  var minByes;
+  // 2-3 char variable names. I was a horrible person
 
   const brackets = {};
   const bracketsArray = [];
@@ -116,7 +91,8 @@ const playHighLow = meetTwice => teams => {
   teams.forEach((team, i) => {
     team.rank = i;
     team.paired = false;
-    var nbal = team.wins;
+
+    const nbal = team.wins;
     let bracket = brackets[nbal];
 
     if (!bracket) {
@@ -131,61 +107,48 @@ const playHighLow = meetTwice => teams => {
 
   let nextBracket;
   const pull = (bracket, count, avoidedSide) => {
-    bracket.teams.sort(function(a, b) {
-      return b.rank - a.rank;
-    });
+    bracket.teams.sort((a, b) => b.rank - a.rank);
 
-    bracket.teams = _.filter(bracket.teams, function(a) {
+    bracket.teams = bracket.teams.filter(team => {
       if (count > 0) {
         count--;
-        nextBracket.teams.push(a);
+        nextBracket.teams.push(team);
         return false;
       }
       return true;
     });
   };
 
-  bracketsArray.sort(function(a, b) {
-    return b.ballots - a.ballots;
-  });
-
-  vbn = bracketsArray.length;
+  bracketsArray.sort((a, b) => b.ballots - a.ballots);
 
   bracketsArray.forEach((bracket, i) => {
-    var bn = bracket.teams.length;
-
+    let bn = bracket.teams.length;
     if (!bn) { return; }
 
     nextBracket = bracketsArray[i + 1];
+    if (!nextBracket) { return; }
 
-    if (nextBracket != null) {
-      if (bn & 1) {
-        pull(bracket, 1);
-      }
+    if (bn & 1) { pull(bracket, 1); }
 
-      j = i + 1;
-
-      while (nextBracket != null && nextBracket.length === 0) {
-        nextBracket = bracketsArray[++j];
-      }
-
-      if (nextBracket != null) {
-        bn = bracket.teams.length;
-        nbv = nextBracket.teams;
-
-        // if (bn < opts.matchesPerBracket * 2) {
-        //   bracket.teams.forEach(function(o) {
-        //     return nbv.push(o);
-        //   });
-        //
-        //   bracket.teams.length = 0;
-        // }
-      }
+    let j = i + 1;
+    while (nextBracket != null && nextBracket.length === 0) {
+      nextBracket = bracketsArray[++j];
     }
 
-    bracket.teams.sort(function(a, b) {
-      return a.rank - b.rank;
-    });
+    // if (nextBracket != null) {
+      // bn = bracket.teams.length;
+      // const nbv = nextBracket.teams;
+
+      // if (bn < opts.matchesPerBracket * 2) {
+      //   bracket.teams.forEach(function(o) {
+      //     return nbv.push(o);
+      //   });
+      //
+      //   bracket.teams.length = 0;
+      // }
+    // }
+
+    bracket.teams.sort((a, b) => a.rank - b.rank);
 
     bracket.teams.forEach(team => {
       if (team.paired) { return; }
@@ -209,9 +172,9 @@ const playHighLow = meetTwice => teams => {
       }
     });
   });
-}
+};
 
-function playTournament(strategies) {
+function playTournament (strategies) {
   const teams = generateTeams(teamCount);
   strategies.forEach(strategy => {
     strategy(teams);
@@ -220,7 +183,7 @@ function playTournament(strategies) {
   return teams;
 }
 
-function simulateTournament(strategies) {
+function simulateTournament (strategies) {
   const teams = playTournament(strategies);
   const breaking = _.take(teams, breakCount);
 
@@ -240,7 +203,7 @@ function simulateTournament(strategies) {
   return { breaking, rogueTeams, inversions };
 }
 
-function printStats(stats) {
+function printStats (stats) {
   const rogueTeams = stats.rogueTeams;
   const breaking = stats.breaking;
   const inversions = stats.inversions;
@@ -269,7 +232,7 @@ function printStats(stats) {
   }
 }
 
-function averageStats(stats) {
+function averageStats (stats) {
   let inversions = 0;
   let rogueTeams = 0;
   let inversionsDev = 0;
@@ -283,17 +246,17 @@ function averageStats(stats) {
   rogueTeams /= stats.length;
 
   stats.forEach(stat => {
-    inversionsDev += Math.pow(stat.inversions - inversions, 2)
-    rogueTeamsDev += Math.pow(stat.rogueTeams - rogueTeams, 2)
+    inversionsDev += Math.pow(stat.inversions - inversions, 2);
+    rogueTeamsDev += Math.pow(stat.rogueTeams - rogueTeams, 2);
   });
 
   inversionsDev = Math.sqrt(inversionsDev / stats.length);
   rogueTeamsDev = Math.sqrt(rogueTeamsDev / stats.length);
 
-  return { inversions, inversionsDev, rogueTeams, rogueTeamsDev }
+  return { inversions, inversionsDev, rogueTeams, rogueTeamsDev };
 }
 
-function evaluateStrategies(name, strategies) {
+function evaluateStrategies (name, strategies) {
   if (process.env.PRINT_CSV) {
     process.stdout.write(name);
   } else {
@@ -308,8 +271,10 @@ function evaluateStrategies(name, strategies) {
     )
   );
 
-  // console.log('Random sample:')
-  // printStats(simulateTournament(strategies));
+  if (process.env.PRINT_SAMPLE) {
+    console.log('Random sample:');
+    printStats(simulateTournament(strategies));
+  }
 
   if (process.env.PRINT_CSV) {
     process.stdout.write(`\n`);
@@ -324,7 +289,7 @@ if (process.env.PRINT_CSV) {
   console.log(`${strategyHeader},Underdogs,Underdogs %,Underdogs StdDev,Inversions,Inversions %,Inversions StdDev`);
 }
 
-function evaluateAllStrategies(name, strategies, canMeet) {
+function evaluateAllStrategies (name, strategies, canMeet) {
   if (strategies.length === roundCount) {
     evaluateStrategies(name, strategies);
     return;
