@@ -283,10 +283,22 @@ function evaluateStrategies(name, strategies) {
   console.log('-------------------------\n');
 }
 
-evaluateStrategies('8x High-High teams cannot meet twice', _.times(8, () => playHighHigh(false)));
-evaluateStrategies('8x High-High teams can meet twice', _.times(8, () => playHighHigh(true)));
+evaluateStrategies('8x High-High - teams cannot meet twice', _.times(8, () => playHighHigh(false)));
+evaluateStrategies('8x High-High - teams can meet twice', _.times(8, () => playHighHigh(true)));
 
-evaluateStrategies('6x High-High + 2x High-Low teams cannot meet twice', [
+evaluateStrategies('6x High-High + High-Low + High-High - teams cannot meet twice', [
+  ..._.times(8, () => playHighHigh(false)),
+  playHighLow(false),
+  playHighHigh(false)
+]);
+
+evaluateStrategies('6x High-High + High-Low + High-High - teams can meet twice', [
+  ..._.times(8, () => playHighHigh(true)),
+  playHighLow(false),
+  playHighHigh(false)
+]);
+
+evaluateStrategies('6x High-High + 2x High-Low - teams cannot meet twice', [
   ..._.times(8, () => playHighHigh(false)),
   ..._.times(2, () => playHighLow(false))
 ]);
