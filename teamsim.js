@@ -243,67 +243,125 @@ function printStats(stats) {
   const rogueTeams = stats.rogueTeams;
   const breaking = stats.breaking;
   const inversions = stats.inversions;
+  const inversionsDev = stats.inversionsDev;
+  const rogueTeamsDev = stats.rogueTeamsDev;
 
-  console.log(`${rogueTeams} / ${breakCount} (${Math.round(100*rogueTeams/breakCount)}%) Underdogs in break`);
-  console.log(`${inversions} (${Math.round(100 * inversions / (breakCount * (breakCount - 1) * 0.5))}%) Inversions in break order (unsortedness)`);
+  const roguePercent = 100 * rogueTeams / breakCount;
+  const inversionsPercent = 100 * inversions / (breakCount * (breakCount - 1) * 0.5);
 
-  if (breaking) {
-    breaking.forEach((team, i) => {
-      console.log(`${i + 1}. Team ${team.index}`);
-    });
+  if (process.env.PRINT_CSV) {
+    process.stdout.write(`,${rogueTeams},${roguePercent}`);
+    if (rogueTeamsDev) { process.stdout.write(`,${rogueTeamsDev}`); }
+    process.stdout.write(`,${inversions},${inversionsPercent}`);
+    if (inversionsDev) { process.stdout.write(`,${inversionsDev}`); }
+  } else {
+    console.log(`${rogueTeams} / ${breakCount} (${Math.round(roguePercent)}%) Underdogs in break`);
+    if (rogueTeamsDev) { console.log(`${rogueTeamsDev} Underdogs standard deviation`); }
+    console.log(`${inversions} (${Math.round(inversionsPercent)}%) Inversions in break order (unsortedness)`);
+    if (inversionsDev) { console.log(`${inversionsDev} Inversions standard deviation`); }
+
+    if (breaking) {
+      breaking.forEach((team, i) => {
+        console.log(`${i + 1}. Team ${team.index}`);
+      });
+    }
   }
 }
 
 function averageStats(stats) {
   let inversions = 0;
   let rogueTeams = 0;
+  let inversionsDev = 0;
+  let rogueTeamsDev = 0;
+
   stats.forEach(stat => {
     inversions += stat.inversions;
     rogueTeams += stat.rogueTeams;
   });
   inversions /= stats.length;
   rogueTeams /= stats.length;
-  return { inversions, rogueTeams }
+
+  stats.forEach(stat => {
+    inversionsDev += Math.pow(stat.inversions - inversions, 2)
+    rogueTeamsDev += Math.pow(stat.rogueTeams - rogueTeams, 2)
+  });
+
+  inversionsDev = Math.sqrt(inversionsDev / stats.length);
+  rogueTeamsDev = Math.sqrt(rogueTeamsDev / stats.length);
+
+  return { inversions, inversionsDev, rogueTeams, rogueTeamsDev }
 }
 
 function evaluateStrategies(name, strategies) {
-  console.log(`### ${name}`);
-  console.log('');
+  if (process.env.PRINT_CSV) {
+    process.stdout.write(name);
+  } else {
+    console.log(`### ${name}`);
+    console.log('');
+    console.log(`Average stats for ${numberOfRuns} runs:`);
+  }
 
-  console.log(`Average stats for ${numberOfRuns} runs:`);
   printStats(
     averageStats(
       _.times(numberOfRuns, () => simulateTournament(strategies))
     )
   );
 
-  console.log('Random sample:')
-  printStats(simulateTournament(strategies));
+  // console.log('Random sample:')
+  // printStats(simulateTournament(strategies));
 
-  console.log('-------------------------\n');
+  if (process.env.PRINT_CSV) {
+    process.stdout.write(`\n`);
+  } else {
+    console.log('-------------------------\n');
+  }
 }
 
-evaluateStrategies('8x High-High - teams cannot meet twice', _.times(8, () => playHighHigh(false)));
-evaluateStrategies('8x High-High - teams can meet twice', _.times(8, () => playHighHigh(true)));
+if (process.env.PRINT_CSV) {
+  console.log('Strategy,Underdogs,Underdogs %,Underdogs StdDev,Inversions,Inversions %,Inversions StdDev');
+}
 
-evaluateStrategies('6x High-High + High-Low + High-High - teams cannot meet twice', [
-  ..._.times(8, () => playHighHigh(false)),
+evaluateStrategies('8HH - teams cannot meet twice', _.times(8, () => playHighHigh(false)));
+evaluateStrategies('8HH - teams can meet twice', _.times(8, () => playHighHigh(true)));
+
+evaluateStrategies('6HH + HL + HH - teams cannot meet twice', [
+  ..._.times(6, () => playHighHigh(false)),
   playHighLow(false),
   playHighHigh(false)
 ]);
 
-evaluateStrategies('6x High-High + High-Low + High-High - teams can meet twice', [
-  ..._.times(8, () => playHighHigh(true)),
-  playHighLow(false),
-  playHighHigh(false)
+evaluateStrategies('6HH + HL + HH - teams can meet twice', [
+  ..._.times(6, () => playHighHigh(true)),
+  playHighLow(true),
+  playHighHigh(true)
 ]);
 
-evaluateStrategies('6x High-High + 2x High-Low - teams cannot meet twice', [
-  ..._.times(8, () => playHighHigh(false)),
+evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
+  ..._.times(6, () => playHighHigh(false)),
   ..._.times(2, () => playHighLow(false))
 ]);
 
-evaluateStrategies('6x High-High + 2x High-Low teams can meet twice', [
-  ..._.times(8, () => playHighHigh(true)),
+evaluateStrategies('6HH + 2HL teams can meet twice', [
+  ..._.times(6, () => playHighHigh(true)),
+  ..._.times(2, () => playHighLow(true))
+]);
+
+evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
+  ..._.times(6, () => playHighHigh(false)),
+  ..._.times(2, () => playHighLow(false))
+]);
+
+evaluateStrategies('6HH + 2HL - teams can meet twice', [
+  ..._.times(6, () => playHighHigh(true)),
+  ..._.times(2, () => playHighLow(true))
+]);
+
+evaluateStrategies('5HH + 2HL + HH - teams cannot meet twice', [
+  ..._.times(6, () => playHighHigh(false)),
+  ..._.times(2, () => playHighLow(false))
+]);
+
+evaluateStrategies('5HH + 2HL + HH - teams can meet twice', [
+  ..._.times(6, () => playHighHigh(true)),
   ..._.times(2, () => playHighLow(true))
 ]);
