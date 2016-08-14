@@ -4,11 +4,12 @@ const _ = require('lodash');
 
 const teamCount = 72;
 const breakCount = 16;
+const roundCount = 8;
 const numberOfRuns = 1000;
 
 function generateTeam() {
   return {
-    skill: Math.random() * 20,
+    skill: Math.random() * 7,
     variance: 3 + 2 * Math.random(),
     playedWith: [],
     score: 0,
@@ -318,50 +319,64 @@ function evaluateStrategies(name, strategies) {
 }
 
 if (process.env.PRINT_CSV) {
-  console.log('Strategy,Underdogs,Underdogs %,Underdogs StdDev,Inversions,Inversions %,Inversions StdDev');
+  // const strategyHeader = 'Strategy';
+  const strategyHeader = 'Meet twice,' + _.times(roundCount, i => `R${i + 1}`).join(',');
+  console.log(`${strategyHeader},Underdogs,Underdogs %,Underdogs StdDev,Inversions,Inversions %,Inversions StdDev`);
 }
 
-evaluateStrategies('8HH - teams cannot meet twice', _.times(8, () => playHighHigh(false)));
-evaluateStrategies('8HH - teams can meet twice', _.times(8, () => playHighHigh(true)));
+function evaluateAllStrategies(name, strategies, canMeet) {
+  if (strategies.length === roundCount) {
+    evaluateStrategies(name, strategies);
+    return;
+  }
+  evaluateAllStrategies(name + ',HH', [...strategies, playHighHigh(canMeet)], canMeet);
+  evaluateAllStrategies(name + ',HL', [...strategies, playHighLow(canMeet)], canMeet);
+}
 
-evaluateStrategies('6HH + HL + HH - teams cannot meet twice', [
-  ..._.times(6, () => playHighHigh(false)),
-  playHighLow(false),
-  playHighHigh(false)
-]);
+evaluateAllStrategies('Yes,RND', [playHighHigh(true)], true);
+evaluateAllStrategies('No,RND', [playHighHigh(false)], false);
 
-evaluateStrategies('6HH + HL + HH - teams can meet twice', [
-  ..._.times(6, () => playHighHigh(true)),
-  playHighLow(true),
-  playHighHigh(true)
-]);
-
-evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
-  ..._.times(6, () => playHighHigh(false)),
-  ..._.times(2, () => playHighLow(false))
-]);
-
-evaluateStrategies('6HH + 2HL teams can meet twice', [
-  ..._.times(6, () => playHighHigh(true)),
-  ..._.times(2, () => playHighLow(true))
-]);
-
-evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
-  ..._.times(6, () => playHighHigh(false)),
-  ..._.times(2, () => playHighLow(false))
-]);
-
-evaluateStrategies('6HH + 2HL - teams can meet twice', [
-  ..._.times(6, () => playHighHigh(true)),
-  ..._.times(2, () => playHighLow(true))
-]);
-
-evaluateStrategies('5HH + 2HL + HH - teams cannot meet twice', [
-  ..._.times(6, () => playHighHigh(false)),
-  ..._.times(2, () => playHighLow(false))
-]);
-
-evaluateStrategies('5HH + 2HL + HH - teams can meet twice', [
-  ..._.times(6, () => playHighHigh(true)),
-  ..._.times(2, () => playHighLow(true))
-]);
+// evaluateStrategies('8HH - teams cannot meet twice', _.times(8, () => playHighHigh(false)));
+// evaluateStrategies('8HH - teams can meet twice', _.times(8, () => playHighHigh(true)));
+//
+// evaluateStrategies('6HH + HL + HH - teams cannot meet twice', [
+//   ..._.times(6, () => playHighHigh(false)),
+//   playHighLow(false),
+//   playHighHigh(false)
+// ]);
+//
+// evaluateStrategies('6HH + HL + HH - teams can meet twice', [
+//   ..._.times(6, () => playHighHigh(true)),
+//   playHighLow(true),
+//   playHighHigh(true)
+// ]);
+//
+// evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
+//   ..._.times(6, () => playHighHigh(false)),
+//   ..._.times(2, () => playHighLow(false))
+// ]);
+//
+// evaluateStrategies('6HH + 2HL teams can meet twice', [
+//   ..._.times(6, () => playHighHigh(true)),
+//   ..._.times(2, () => playHighLow(true))
+// ]);
+//
+// evaluateStrategies('6HH + 2HL - teams cannot meet twice', [
+//   ..._.times(6, () => playHighHigh(false)),
+//   ..._.times(2, () => playHighLow(false))
+// ]);
+//
+// evaluateStrategies('6HH + 2HL - teams can meet twice', [
+//   ..._.times(6, () => playHighHigh(true)),
+//   ..._.times(2, () => playHighLow(true))
+// ]);
+//
+// evaluateStrategies('5HH + 2HL + HH - teams cannot meet twice', [
+//   ..._.times(6, () => playHighHigh(false)),
+//   ..._.times(2, () => playHighLow(false))
+// ]);
+//
+// evaluateStrategies('5HH + 2HL + HH - teams can meet twice', [
+//   ..._.times(6, () => playHighHigh(true)),
+//   ..._.times(2, () => playHighLow(true))
+// ]);
