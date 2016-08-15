@@ -10,7 +10,7 @@ const numberOfRuns = 1000;
 function generateTeam () {
   return {
     skill: Math.random() * 7,
-    variance: 3 + 2 * Math.random(),
+    variance: 2 * Math.random(),
     playedWith: [],
     score: 0,
     wins: 0,
@@ -79,7 +79,7 @@ const playHighHigh = meetTwice => teams => {
   }
 };
 
-const playHighLow = meetTwice => teams => {
+const playBrackets = swiss => meetTwice => teams => {
   sortTeams(teams);
 
   // Code adapted from Tabs and automatically converted from Cofeescript
@@ -148,7 +148,11 @@ const playHighLow = meetTwice => teams => {
       // }
     // }
 
-    bracket.teams.sort((a, b) => a.rank - b.rank);
+    if (swiss) {
+      bracket.teams = _.shuffle(bracket.teams);
+    } else {
+      bracket.teams.sort((a, b) => a.rank - b.rank);
+    }
 
     bracket.teams.forEach(team => {
       if (team.paired) { return; }
@@ -173,6 +177,9 @@ const playHighLow = meetTwice => teams => {
     });
   });
 };
+
+const playHighLow = playBrackets(false);
+const playSwiss = playBrackets(true);
 
 function playTournament (strategies) {
   const teams = generateTeams(teamCount);
@@ -296,6 +303,7 @@ function evaluateAllStrategies (name, strategies, canMeet) {
   }
   evaluateAllStrategies(name + ',HH', [...strategies, playHighHigh(canMeet)], canMeet);
   evaluateAllStrategies(name + ',HL', [...strategies, playHighLow(canMeet)], canMeet);
+  evaluateAllStrategies(name + ',SW', [...strategies, playSwiss(canMeet)], canMeet);
 }
 
 evaluateAllStrategies('Yes,RND', [playHighHigh(true)], true);
